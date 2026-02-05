@@ -29,7 +29,7 @@ const getWishes = async (req, res) => {
   }
 
   const [rows] = await db.query(query, params);
-  res.json(rows);
+  res.json({ "wishes": rows });
 };
 
 /* UPDATE */

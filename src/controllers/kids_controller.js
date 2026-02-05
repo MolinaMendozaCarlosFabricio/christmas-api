@@ -35,7 +35,7 @@ const login = async (req, res) => {
     return res.status(401).json({ message: "Invalidad password" });
 
   res.json({
-    user,
+    user: user,
     role: user.is_santa ? "santa" : "kid"
   });
 };
@@ -43,7 +43,7 @@ const login = async (req, res) => {
 /* READ ALL (solo Santa) */
 const getUsers = async (req, res) => {
   const [rows] = await db.query("SELECT * FROM users WHERE is_santa = false");
-  res.json(rows);
+  res.json({kids:rows});
 };
 
 /* READ ONE */
@@ -52,7 +52,7 @@ const getUser = async (req, res) => {
     "SELECT * FROM users WHERE id = ?",
     [req.params.id]
   );
-  res.json(rows[0]);
+  res.json({user:rows[0]});
 };
 
 /* UPDATE */
