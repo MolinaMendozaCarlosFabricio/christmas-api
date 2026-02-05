@@ -11,6 +11,10 @@ app.use(express.json());
 app.use("/users", kids_router);
 app.use("/wishes", wishes_router);
 
+app.get("/", (req, res) => {
+  res.json({message: "Bienvenido a la API navideña"});
+});
+
 app.listen(3000, () => {
   console.log("Christmas API running on port 3000");
 });
