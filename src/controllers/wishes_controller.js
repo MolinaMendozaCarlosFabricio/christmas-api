@@ -2,11 +2,11 @@ import db from "../config/db.js"
 
 /* CREATE wish (solo el dueño) */
 const createWish = async (req, res) => {
-  const { object } = req.body;
+  const { thing } = req.body;
 
   await db.query(
     "INSERT INTO wishes(object, id_user) VALUES(?,?)",
-    [object, req.user.id]
+    [thing, req.user.id]
   );
 
   res.json({ message: "Wish added" });
