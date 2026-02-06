@@ -9,7 +9,7 @@ const createWish = async (req, res) => {
     console.log("Body:", req.body);
 
     await db.query(
-      "INSERT INTO wishes(object, id_user) VALUES(?,?)",
+      "INSERT INTO wishes(thing, id_user) VALUES(?,?)",
       [thing, req.user.id]
     );
 
