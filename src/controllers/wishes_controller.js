@@ -68,7 +68,7 @@ const updateWish = async (req, res) => {
 
   try {
     await db.query(
-      "UPDATE wishes SET object=? WHERE id=? AND id_user=?",
+      "UPDATE wishes SET thing=? WHERE id=? AND id_user=?",
       [req.body.object, req.params.id, req.user.id]
     );
 
