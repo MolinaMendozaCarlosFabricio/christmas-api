@@ -1,5 +1,7 @@
 import db from "../config/db.js";
 
+// Comentario 1
+
 /* CREATE wish (solo el dueño) */
 const createWish = async (req, res) => {
   console.log("🎯 [CREATE WISH] user:", req.user);
