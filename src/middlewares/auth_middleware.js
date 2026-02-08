@@ -13,6 +13,8 @@ const auth = (req, res, next) => {
   next();
 };
 
+// Comentario 3
+
 const onlySanta = (req, res, next) => {
   if (req.user.role !== "santa")
     return res.status(403).json({ message: "Only Santa allowed" });

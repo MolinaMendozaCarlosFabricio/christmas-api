@@ -1,5 +1,7 @@
 import db from "../config/db.js";
 
+// Comentario 2
+
 /* CREATE (solo niños) */
 const createUser = async (req, res) => {
   console.log("👶 [REGISTER KID]", req.body);
