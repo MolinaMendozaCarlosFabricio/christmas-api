@@ -11,7 +11,7 @@ const createWish = async (req, res) => {
     console.log("Body:", req.body);
 
     await db.query(
-      "INSERT INTO wishes(thing, id_user) VALUES(?,?)",
+      "INSERT INTO wishes(object, id_user) VALUES(?,?)",
       [thing, req.user.id]
     );
 
@@ -33,18 +33,34 @@ const getWishes = async (req, res) => {
     let query;
     let params = [];
 
-    if (req.user.role === "santa") {
+    if (req.user.role === "parent") {
       console.log("🎅 Santa requesting ALL wishes");
 
       query = `
-        SELECT w.*, u.username
+        SELECT 
+          w.*,
+          u.username,
+          im.url AS photo_url
         FROM wishes w
         JOIN users u ON u.id = w.id_user
+        LEFT JOIN image_metadata im 
+          ON im.id = w.id_photo
+        WHERE u.family_code = ?
       `;
+
+      params.push(req.params.code);
     } else {
       console.log("👦 Kid requesting own wishes");
 
-      query = "SELECT * FROM wishes WHERE id_user = ?";
+      query = `
+        SELECT 
+          w.*,
+          im.url AS photo_url
+        FROM wishes w
+        LEFT JOIN image_metadata im 
+          ON im.id = w.id_photo
+        WHERE w.id_user = ?
+      `;
       params.push(req.user.id);
     }
 
@@ -70,8 +86,8 @@ const updateWish = async (req, res) => {
 
   try {
     await db.query(
-      "UPDATE wishes SET thing=? WHERE id=? AND id_user=?",
-      [req.body.object, req.params.id, req.user.id]
+      "UPDATE wishes SET object=? WHERE id=? AND id_user=?",
+      [req.body.thing, req.params.id, req.user.id]
     );
 
     console.log("✅ Wish updated");
@@ -83,6 +99,28 @@ const updateWish = async (req, res) => {
   }
 };
 
+const setWishStatus = async (req, res) => {
+  console.log("[SET STATUS", {
+    user: req.user,
+    wishId: req.params.id,
+    body: req.body
+  });
+
+  try {
+    const { state } = req.body
+    await db.query(
+      "UPDATE wishes SET state = ? WHERE id = ? AND id_user = ?",
+      [state, req.params.id, req.user.id]
+    );
+
+    console.log("Wish state updated");
+
+    res.json({ message: "State updated" });
+  } catch(err) {
+    console.log("❌ ERROR updateWishState:", err);
+    res.status(500).json(err);
+  }
+}
 
 /* DELETE */
 const deleteWish = async (req, res) => {
@@ -111,5 +149,6 @@ export const wishes_controller = {
   createWish,
   getWishes,
   updateWish,
+  setWishStatus,
   deleteWish,
 };

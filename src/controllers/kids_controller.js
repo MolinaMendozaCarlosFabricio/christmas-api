@@ -6,13 +6,17 @@ import db from "../config/db.js";
 const createUser = async (req, res) => {
   console.log("👶 [REGISTER KID]", req.body);
 
-  const { username, age, country, password } = req.body;
+  let { username, age, country, password, role, family_code } = req.body;
 
   try {
+    if (role == "parent"){
+      family_code = Math.random().toString(36).substring(2,8).toUpperCase();
+    }
+
     const [result] = await db.query(
-      `INSERT INTO users(username, age, country, password, good_kid, is_santa)
-       VALUES(?,?,?,?, true, false)`,
-      [username, age, country, password]
+      `INSERT INTO users(username, age, country, password, role, family_code)
+       VALUES(?,?,?,?,?,?)`,
+      [username, age, country, password, role, family_code]
     );
 
     console.log("✅ Kid created with id:", result.insertId);
@@ -31,6 +35,7 @@ const login = async (req, res) => {
 
   try {
     const { username, password } = req.body;
+    password.trim()
 
     const [rows] = await db.query(
       "SELECT * FROM users WHERE username=?",
@@ -53,7 +58,6 @@ const login = async (req, res) => {
 
     res.json({
       user,
-      role: user.is_santa ? "santa" : "kid"
     });
 
   } catch (err) {
@@ -63,13 +67,29 @@ const login = async (req, res) => {
 };
 
 
-/* READ ALL (solo Santa) */
+/* READ MY CHILDS (Padres) */
 const getUsers = async (req, res) => {
   console.log("🎅 [GET ALL KIDS]");
 
   try {
+    const code = req.params.code
     const [rows] = await db.query(
-      "SELECT * FROM users WHERE is_santa = false"
+      `
+      SELECT 
+        u.*,
+        a.url AS audio_url
+      FROM users u
+      LEFT JOIN audio_metadata a 
+        ON a.id_child = u.id
+      WHERE u.family_code = ?
+      AND u.role = "child"
+      AND a.id = (
+        SELECT MAX(id)
+        FROM audio_metadata
+        WHERE id_child = u.id
+      )
+      `,
+        [code]
     );
 
     console.log("✅ Kids count:", rows.length);
@@ -127,33 +147,6 @@ const updateUser = async (req, res) => {
 };
 
 
-/* TOGGLE GOODNESS */
-const setGoodness = async (req, res) => {
-  console.log("⭐ [TOGGLE GOODNESS] user:", req.params.id);
-
-  try {
-    const [rows] = await db.query(
-      "SELECT good_kid FROM users WHERE id = ?",
-      [req.params.id]
-    );
-
-    const newValue = !rows[0].good_kid;
-
-    await db.query(
-      `UPDATE users SET good_kid = ? WHERE id=?`,
-      [newValue, req.params.id]
-    );
-
-    console.log("✅ Goodness changed to:", newValue);
-
-    res.json({ message: "Goodness updated" });
-  } catch (err) {
-    console.log("❌ ERROR setGoodness:", err);
-    res.status(500).json(err);
-  }
-};
-
-
 /* DELETE */
 const deleteUser = async (req, res) => {
   console.log("🗑️ [DELETE USER]", req.params.id);
@@ -170,12 +163,113 @@ const deleteUser = async (req, res) => {
   }
 };
 
+const bindFamiliy = async (req, res) => {
+  console.log("[CREATE ARE_FAMILY] ", {
+    body: req.body
+  });
+
+  try {
+    const { id_parent, id_child } = req.body;
+
+    await db.query(
+      "INSERT INTO are_family (id_parent, id_child) VALUES (?,?)",
+      [id_parent, id_child]
+    )
+
+    console.log(`Family binded for ${id_parent} and ${id_child}`);
+
+    res.status(201).json({ message: `Family binded for ${id_parent} and ${id_child}` });
+  } catch(err) {
+    console.log("Error: ", err);
+    res.status(500).json(err);
+  }
+}
+
+const getFamilyDashboard = async (req, res) => {
+
+  console.log("👨‍👩‍👧 [FAMILY DASHBOARD]");
+
+  try {
+
+    const code = req.params.code;
+
+    const [rows] = await db.query(
+      `
+      SELECT
+        u.id AS kid_id,
+        u.username,
+        a.url AS audio_url,
+        w.id AS wish_id,
+        w.object,
+        w.state,
+        im.url AS photo_url
+      FROM users u
+      LEFT JOIN audio_metadata a
+        ON a.id_child = u.id
+      LEFT JOIN wishes w
+        ON w.id_user = u.id
+      LEFT JOIN image_metadata im
+        ON im.id = w.id_photo
+      WHERE u.family_code = ?
+      AND u.role = "child"
+      ORDER BY u.id, w.id
+      `,
+      [code]
+    );
+
+    const kidsMap = {};
+
+    for (const row of rows) {
+
+      if (!kidsMap[row.kid_id]) {
+
+        kidsMap[row.kid_id] = {
+          id: row.kid_id,
+          username: row.username,
+          audio_url: row.audio_url,
+          wishes: []
+        };
+
+      }
+
+      if (row.wish_id) {
+
+        kidsMap[row.kid_id].wishes.push({
+          id: row.wish_id,
+          object: row.object,
+          state: row.state,
+          photo_url: row.photo_url
+        });
+
+      }
+
+    }
+
+    const kids = Object.values(kidsMap);
+
+    console.log("✅ Kids:", kids.length);
+
+    res.json({
+      family_code: code,
+      kids
+    });
+
+  } catch (err) {
+
+    console.log("❌ ERROR getFamilyDashboard:", err);
+    res.status(500).json(err);
+
+  }
+
+};
+
 export const kids_controller = {
   createUser,
   login,
   getUsers,
   getUser,
   updateUser,
-  setGoodness,
-  deleteUser
+  deleteUser,
+  bindFamiliy,
+  getFamilyDashboard
 };
