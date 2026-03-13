@@ -263,6 +263,34 @@ const getFamilyDashboard = async (req, res) => {
 
 };
 
+const saveFcmToken = async (req, res) => {
+
+  try {
+
+    const { token } = req.body;
+
+    await db.query(
+      `
+      UPDATE users
+      SET fcm_token = ?
+      WHERE id = ?
+      `,
+      [token, req.user.id]
+    );
+
+    res.json({
+      message: "Token saved"
+    });
+
+  } catch (err) {
+
+    console.log("❌ ERROR saveFcmToken:", err);
+    res.status(500).json(err);
+
+  }
+
+};
+
 export const kids_controller = {
   createUser,
   login,
@@ -271,5 +299,6 @@ export const kids_controller = {
   updateUser,
   deleteUser,
   bindFamiliy,
-  getFamilyDashboard
+  getFamilyDashboard,
+  saveFcmToken,
 };

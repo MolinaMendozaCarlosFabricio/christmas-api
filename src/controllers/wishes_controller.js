@@ -17,6 +17,30 @@ const createWish = async (req, res) => {
 
     console.log("✅ Wish inserted for user:", req.user.id);
 
+    const [parents] = await db.query(
+      `
+        SELECT fcm_token
+        FROM users
+        WHERE family_code = ?
+        AND role = "parent"
+      `,
+      [req.user.family_code]
+    );
+
+    for (const parent of parents) {
+
+      if (parent.fcm_token) {
+
+        await sendNotification(
+          parent.fcm_token,
+          "Nuevo deseo 🎁",
+          `${req.user.id} agregó un nuevo deseo`
+        );
+
+      }
+
+    }
+
     res.json({ message: "Wish added" });
   } catch (err) {
     console.log("❌ ERROR createWish:", err);
@@ -109,7 +133,7 @@ const setWishStatus = async (req, res) => {
   try {
     const { state } = req.body
     await db.query(
-      "UPDATE wishes SET state = ? WHERE id = ? AND id_user = ?",
+      "UPDATE wishes SET state = ? WHERE id = ?",
       [state, req.params.id, req.user.id]
     );
 
