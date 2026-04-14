@@ -2,6 +2,8 @@ import { s3 } from "../config/s3.js";
 import db from "../config/db.js";
 import { PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { v4 as uuidv4 } from "uuid";
+import { notifyUser } from "../services/notification_service.js";
+
 
 const uploadWishPhoto = async (req, res) => {
 
@@ -124,6 +126,28 @@ const uploadAudioMessage = async (req, res) => {
       `,
       [filename, url, childId]
     );
+
+    // Notificar a los padres
+    const [userRows] = await db.query("SELECT username, family_code FROM users WHERE id = ?", [childId]);
+    const { username, family_code } = userRows[0] || {};
+
+    const [parents] = await db.query(
+      `
+        SELECT id
+        FROM users
+        WHERE family_code = ?
+        AND role = "parent"
+      `,
+      [family_code]
+    );
+
+    for (const parent of parents) {
+      await notifyUser(
+        parent.id,
+        "Mensaje de voz 🎤",
+        `${username || childId} subió un nuevo audio`
+      );
+    }
 
     res.json({
       message: "Audio uploaded / replaced",

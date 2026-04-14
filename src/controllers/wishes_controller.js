@@ -1,4 +1,6 @@
 import db from "../config/db.js";
+import { notifyUser } from "../services/notification_service.js";
+
 
 // Comentario 1
 
@@ -15,30 +17,26 @@ const createWish = async (req, res) => {
       [thing, req.user.id]
     );
 
-    console.log("✅ Wish inserted for user:", req.user.id);
+    // Buscar el código de familia del niño
+    const [userRows] = await db.query("SELECT username, family_code FROM users WHERE id = ?", [req.user.id]);
+    const { username, family_code } = userRows[0] || {};
 
     const [parents] = await db.query(
       `
-        SELECT fcm_token
+        SELECT id
         FROM users
         WHERE family_code = ?
         AND role = "parent"
       `,
-      [req.user.family_code]
+      [family_code]
     );
 
     for (const parent of parents) {
-
-      if (parent.fcm_token) {
-
-        await sendNotification(
-          parent.fcm_token,
-          "Nuevo deseo 🎁",
-          `${req.user.id} agregó un nuevo deseo`
-        );
-
-      }
-
+      await notifyUser(
+        parent.id,
+        "Nuevo deseo 🎁",
+        `${username || req.user.id} agregó un nuevo deseo`
+      );
     }
 
     res.json({ message: "Wish added" });
@@ -115,6 +113,28 @@ const updateWish = async (req, res) => {
     );
 
     console.log("✅ Wish updated");
+
+    // Buscar el código de familia del niño
+    const [userRows] = await db.query("SELECT username, family_code FROM users WHERE id = ?", [req.user.id]);
+    const { username, family_code } = userRows[0] || {};
+
+    const [parents] = await db.query(
+      `
+        SELECT id
+        FROM users
+        WHERE family_code = ?
+        AND role = "parent"
+      `,
+      [family_code]
+    );
+
+    for (const parent of parents) {
+      await notifyUser(
+        parent.id,
+        "Deseo editado ✏️",
+        `${username || req.user.id} actualizó un deseo`
+      );
+    }
 
     res.json({ message: "Updated" });
   } catch (err) {

@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import kids_router from "./src/routes/kids_routes.js";
 import wishes_router from "./src/routes/wishes_routes.js";
+import notifications_router from "./src/routes/notifications_routes.js";
 
 const app = express();
 
@@ -10,6 +11,8 @@ app.use(express.json());
 
 app.use("/users", kids_router);
 app.use("/wishes", wishes_router);
+app.use("/notifications", notifications_router);
+
 
 app.get("/", (req, res) => {
   res.json({message: "Bienvenido a la API navideña"});

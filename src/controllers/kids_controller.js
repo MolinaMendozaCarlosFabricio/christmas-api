@@ -10,7 +10,9 @@ const createUser = async (req, res) => {
 
   try {
     if (role == "parent"){
-      family_code = Math.random().toString(36).substring(2,8).toUpperCase();
+      if (!family_code) {
+        family_code = Math.random().toString(36).substring(2,8).toUpperCase();
+      }
     }
 
     const [result] = await db.query(
