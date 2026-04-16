@@ -12,7 +12,7 @@ const createWish = async (req, res) => {
     const { thing } = req.body;
     console.log("Body:", req.body);
 
-    await db.query(
+    const [result] = await db.query(
       "INSERT INTO wishes(object, id_user) VALUES(?,?)",
       [thing, req.user.id]
     );
@@ -39,7 +39,10 @@ const createWish = async (req, res) => {
       );
     }
 
-    res.json({ message: "Wish added" });
+    res.json({
+      message: "Wish added",
+      id: result.insertId
+    });
   } catch (err) {
     console.log("❌ ERROR createWish:", err);
     res.status(500).json(err);
